@@ -53,7 +53,7 @@ def update_historical_prices():
             count += 1
         missing_df[ticker] = d['close']
 
-    missing_df['date'] = pd.to_datetime(missing_df['date'])
+    missing_df['date'] = pd.to_datetime(missing_df['date']).apply(lambda x: x.strftime('%#d/%#m/%Y'))
     missing_df.index = missing_df['date']
     missing_df.drop(columns=['date'], inplace=True)
     LOG.info('Missing ticker prices: \n')
@@ -61,9 +61,9 @@ def update_historical_prices():
     print('\n')
 
     px.drop(columns=missing_prices, inplace=True)
+    px.index = px.index.to_series().apply(lambda x: x.strftime('%#d/%#m/%Y'))
     new_prices = pd.merge(px, missing_df, how='left', left_index=True, right_index=True)
 
-    prices['Date'] = pd.to_datetime(prices['Date'])
     prices.index = prices['Date']
     prices.drop(columns=['Date'], inplace=True)
     initial_columns = list(prices.columns)
@@ -97,7 +97,7 @@ def update_fundamentals():
         LOG.info('New tickers added to index: {}'.format(new_names))
     if len(removed_names) != 0:
         LOG.info('Tickers removed from index: {}'.format(removed_names))
-    fndmntls_df.to_csv('bvp_emcloud_fundamentals.csv')
+    fndmntls_df.to_csv('bvp_emcloud_fundamentals.csv', index=False)
     os.remove('BVP-Nasdaq-Emerging-Cloud-Index.xlsx')
 
 
