@@ -93,10 +93,18 @@ def update_fundamentals():
     current_tickers = fndmntls_df['Symbol']
     new_names = list(set(current_tickers)-set(hist_tickers))
     removed_names = list(set(hist_tickers)-set(current_tickers))
+    msg = []
     if len(new_names) != 0:
-        LOG.info('New tickers added to index: {}'.format(new_names))
+        ticker_msg = 'New tickers added to index: {}'.format(new_names)
+        msg.append(ticker_msg)
+        LOG.info(ticker_msg)
     if len(removed_names) != 0:
-        LOG.info('Tickers removed from index: {}'.format(removed_names))
+        removed_msg = 'Tickers removed from index: {}'.format(removed_names)
+        msg.append(removed_msg)
+        LOG.info(removed_msg)
+    with open('index_changes_{}.txt'.format(datetime.date.today().strftime('%Y%m%d')), 'w') as f:
+        for item in msg:
+            f.write("%s\n" % item)
     fndmntls_df.to_csv('bvp_emcloud_fundamentals.csv', index=False)
     os.remove('BVP-Nasdaq-Emerging-Cloud-Index.xlsx')
 
