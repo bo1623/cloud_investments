@@ -1,4 +1,4 @@
-# cloud_investments
+# Cloud Investments
 
 We're in an age where the importance of data services and all things related are starting to gain momentum. I was looking for ideas on how to monetize this view when I came across this index called the The BVP (Bessemer Venture Partners) Nasdaq Emerging Cloud Index.
 
