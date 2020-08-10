@@ -31,7 +31,11 @@ def update_historical_prices():
         return
 
     LOG.info('Downloading historical prices from Yahoo from {} to {}'.format(start, end))
-    f = web.DataReader(tickers, 'yahoo', start, end)
+    try:
+        f = web.DataReader(tickers, 'yahoo', start, end)
+    except ValueError:
+        LOG.info('{} Yahoo prices not available for download yet'.format(end))
+        sys.exit(0)
     close_data = f[ls_key]
     px = pd.DataFrame(close_data)
     print(px.head())
@@ -110,8 +114,8 @@ def update_fundamentals():
 
 
 if __name__ == '__main__':
-    update_fundamentals()
     update_historical_prices()
+    update_fundamentals()
 
 
 
