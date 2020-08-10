@@ -28,8 +28,8 @@ url = 'https://cloud.iexapis.com/stable/stock/{ticker}/chart/5d?chartCloseOnly=T
 
 Once my quick and easy pipeline was set up, I then got to work on my jupyter notebooks, and came up with a scatter plot comparing each stock's YTD% against its EV/Annualized Revenue.
 
-<p align='right'>
-  <img src="https://i.imgur.com/5cU3MgJ.gif" width="900">
+<p align='center'>
+  <img src="https://i.imgur.com/sZJC9EB.gif" width="900">
 </p>
 
 From here we're able to see that there were only 6 names that are down YTD, while the rest are all up with some names even posting >300% gains. (Well done BVP). Now the scatter points on the bottom left look interesting because they've remained in loss territory while most of the stock market has recovered from the initial COVID slump and secondly because they have low EV/Annualized Revenue, which is an indicator of value.
