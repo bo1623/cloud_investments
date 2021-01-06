@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger(__name__)
 
 
-def update_historical_prices():
+def update_historical_prices(env):
     prices = pd.read_csv('bvp_historical_prices_2020.csv')
     latest = prices['Date'].iloc[-1]
     day, month, year = latest.split('/')
@@ -42,14 +42,18 @@ def update_historical_prices():
 
     missing_prices = px.isna().any()
     missing_prices = list(missing_prices.where(missing_prices == True).dropna().index)
-    token = os.getenv("IEX_KEY")
+    token = os.getenv("IEX_KEY") if env=='prod' else os.getenv("SANDBOX_KEY")
     count = 0
     missing_df = pd.DataFrame()
     LOG.info('Downloading historical prices for missing tickers {} for {} to {}'.format(
         missing_prices, start, end))
     for ticker in missing_prices:
-        url = 'https://cloud.iexapis.com/stable/stock/{ticker}/chart/5d?chartCloseOnly=True' \
-              '&includeToday=True&token={token}'.format(ticker=ticker, token=token)
+        if env=='prod':
+            url = 'https://cloud.iexapis.com/stable/stock/{ticker}/chart/5d?chartCloseOnly=True' \
+                  '&includeToday=True&token={token}'.format(ticker=ticker, token=token)
+        else:
+            url = 'https://sandbox.iexapis.com/stable/stock/{ticker}/chart/5d?chartCloseOnly=True' \
+                  '&includeToday=True&token={token}'.format(ticker=ticker, token=token)
         resp = requests.get(url)
         d = pd.DataFrame(resp.json())
         while count == 0:
@@ -87,8 +91,8 @@ def update_fundamentals():
     output.close()
 
     fndmntls_df = pd.read_excel('BVP-Nasdaq-Emerging-Cloud-Index.xlsx', sheet_name='Index Constituents')
-    fndmntls_df.columns = fndmntls_df.iloc[5]
-    fndmntls_df = fndmntls_df.iloc[6:, 1:-1]
+    fndmntls_df.columns = fndmntls_df.iloc[6]
+    fndmntls_df = fndmntls_df.iloc[9:, 1:-1]
     fndmntls_df.dropna(subset=['Symbol'], inplace=True)
     print(fndmntls_df.head())
 
@@ -114,8 +118,8 @@ def update_fundamentals():
 
 
 if __name__ == '__main__':
-    update_historical_prices()
     update_fundamentals()
+    update_historical_prices('test')
 
 
 

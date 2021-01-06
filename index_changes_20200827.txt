@@ -1,0 +1,1 @@
+New tickers added to index: ['SVMK', 'BILL', 'SPT']
