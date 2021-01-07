@@ -101,18 +101,17 @@ def update_fundamentals():
     current_tickers = fndmntls_df['Symbol']
     new_names = list(set(current_tickers)-set(hist_tickers))
     removed_names = list(set(hist_tickers)-set(current_tickers))
-    msg = []
-    if len(new_names) != 0:
-        ticker_msg = 'New tickers added to index: {}'.format(new_names)
-        msg.append(ticker_msg)
-        LOG.info(ticker_msg)
-    if len(removed_names) != 0:
-        removed_msg = 'Tickers removed from index: {}'.format(removed_names)
-        msg.append(removed_msg)
-        LOG.info(removed_msg)
-    with open('index_changes_{}.txt'.format(datetime.date.today().strftime('%Y%m%d')), 'w') as f:
-        for item in msg:
-            f.write("%s\n" % item)
+    if len(new_names) != 0 or len(removed_names) != 0:
+        idx_chg = pd.read_csv('index_changes.csv')
+        rows, _ = idx_chg.shape
+        today = datetime.date.today().strftime('%Y%m%d')
+        for n in range(len(new_names)):
+            idx_chg.loc[rows+n] = [new_names[n],1,today]
+            LOG.info('Added {} to index'.format(new_names[n]))
+        rows, _ = idx_chg.shape
+        for m in range(len(removed_names)):
+            idx_chg.loc[rows+m] = [removed_names[m],-1,today]
+            LOG.info('Dropped {} from index'.format(removed_names[m]))
     fndmntls_df.to_csv('bvp_emcloud_fundamentals.csv', index=False)
     os.remove('BVP-Nasdaq-Emerging-Cloud-Index.xlsx')
 
