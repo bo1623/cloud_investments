@@ -16,13 +16,11 @@ LOG = logging.getLogger(__name__)
 
 
 def update_historical_prices(env):
-    prices = pd.read_csv('bvp_historical_prices_2020.csv')
-    latest = prices['Date'].iloc[-1]
+    constituents = pd.read_csv('bvp_emcloud_fundamentals.csv')
+    prices = pd.read_csv('Historical_Prices_updated.csv')
+    latest = prices['date'].iloc[-1]
     day, month, year = latest.split('/')
-
-    tickers = list(prices.columns)
-    tickers.remove('Date')
-    ls_key = 'Adj Close'
+    tickers = list(constituents['Symbol'])
     start = datetime.date(int(year), int(month), int(day))
     end = datetime.date.today()
 
@@ -30,55 +28,28 @@ def update_historical_prices(env):
         LOG.info('Prices are already up to date')
         return
 
-    LOG.info('Downloading historical prices from Yahoo from {} to {}'.format(start, end))
-    try:
-        f = web.DataReader(tickers, 'yahoo', start, end)
-    except ValueError:
-        LOG.info('{} Yahoo prices not available for download yet'.format(end))
-        sys.exit(0)
-    close_data = f[ls_key]
-    px = pd.DataFrame(close_data)
-    print(px.head())
-
-    missing_prices = px.isna().any()
-    missing_prices = list(missing_prices.where(missing_prices == True).dropna().index)
-    token = os.getenv("IEX_KEY") if env=='prod' else os.getenv("SANDBOX_KEY")
-    count = 0
-    missing_df = pd.DataFrame()
-    LOG.info('Downloading historical prices for missing tickers {} for {} to {}'.format(
-        missing_prices, start, end))
-    for ticker in missing_prices:
-        if env=='prod':
-            url = 'https://cloud.iexapis.com/stable/stock/{ticker}/chart/5d?chartCloseOnly=True' \
-                  '&includeToday=True&token={token}'.format(ticker=ticker, token=token)
-        else:
-            url = 'https://sandbox.iexapis.com/stable/stock/{ticker}/chart/5d?chartCloseOnly=True' \
-                  '&includeToday=True&token={token}'.format(ticker=ticker, token=token)
-        resp = requests.get(url)
-        d = pd.DataFrame(resp.json())
-        while count == 0:
-            missing_df['date'] = d['date']
-            count += 1
-        missing_df[ticker] = d['close']
-
-    missing_df['date'] = pd.to_datetime(missing_df['date']).apply(lambda x: x.strftime('%#d/%#m/%Y'))
-    missing_df.index = missing_df['date']
-    missing_df.drop(columns=['date'], inplace=True)
-    LOG.info('Missing ticker prices: \n')
-    print(missing_df.head())
-    print('\n')
-
-    px.drop(columns=missing_prices, inplace=True)
-    px.index = px.index.to_series().apply(lambda x: x.strftime('%#d/%#m/%Y'))
-    new_prices = pd.merge(px, missing_df, how='left', left_index=True, right_index=True)
-
-    prices.index = prices['Date']
-    prices.drop(columns=['Date'], inplace=True)
-    initial_columns = list(prices.columns)
-    new_prices = new_prices[initial_columns]
-    updated_prices = pd.concat([prices, new_prices])
-    updated_prices = updated_prices.loc[~updated_prices.index.duplicated(keep='last')]
-    updated_prices.to_csv('bvp_historical_prices_2020.csv')
+    token = os.getenv("IEX_KEY") if env == 'prod' else os.getenv("SANDBOX_KEY")
+    if env=='prod':
+        url = 'https://cloud.iexapis.com/stable/stock/market/batch?symbols={}&types=chart&chartCloseOnly=True' \
+              '&token={}&range=5d&includeToday=True'.format(tickers, token)
+    else:
+        url = 'https://sandbox.iexapis.com/stable/stock/market/batch?symbols={}&types=chart&chartCloseOnly=True' \
+              '&token={}&range=5d&includeToday=True'.format(tickers, token)
+    resp = requests.get(url)
+    new_prices = pd.DataFrame(resp.json())
+    new_prices = new_prices.T
+    n, _ = prices.shape
+    for idx, row in new_prices.iterrows():
+        ticker = idx
+        data = row['chart']
+        for day in data:
+            date = day['date']
+            y, m, d = date.split('-')
+            new_date = '{}/{}/{}'.format(int(d), int(m), y)
+            prices.loc[n] = [ticker, new_date, day['close'], day['volume']]
+            n += 1
+    prices = prices.drop_duplicates(['ticker', 'date'], keep='last')
+    prices.to_csv('Historical_Prices_updated.csv', index=False)
     LOG.info('Price update complete for {}'.format(end))
 
 
@@ -112,13 +83,14 @@ def update_fundamentals():
         for m in range(len(removed_names)):
             idx_chg.loc[rows+m] = [removed_names[m],-1,today]
             LOG.info('Dropped {} from index'.format(removed_names[m]))
+        idx_chg.to_csv('index_changes.csv', index=False)
     fndmntls_df.to_csv('bvp_emcloud_fundamentals.csv', index=False)
     os.remove('BVP-Nasdaq-Emerging-Cloud-Index.xlsx')
 
 
 if __name__ == '__main__':
     update_fundamentals()
-    update_historical_prices('test')
+    update_historical_prices('prod')
 
 
 
